@@ -1,33 +1,21 @@
-- name: Check Oracle DB status
-  hosts: target
+---
+- name: Check Oracle listener status
+  hosts: target   # or your actual host/group name
   become: yes
-
-  vars:
-    oracle_user: oracle
-    oracle_sid: XE
 
   tasks:
     - name: Check if listener is running
       shell: ps -ef | grep tns | grep -v grep
       register: listener_status
       ignore_errors: yes
+      changed_when: false
 
-    - name: Check Oracle DB status using sqlplus
-      shell: |
-        su - {{ oracle_user }} -c '
-          export ORACLE_SID={{ oracle_sid }}
-          sqlplus -s / as sysdba <<EOF
-          select status from v$instance;
-          exit;
-EOF
-        '
-      register: db_status
-      ignore_errors: yes
-
-    - name: Show listener status
+    - name: Print listener status message
       debug:
-        var: listener_status.stdout
+        msg: >
+          {% if listener_status.stdout %}
+          Listener is up
+          {% else %}
+          Listener is down
+          {% endif %}
 
-    - name: Show DB status
-      debug:
-        var: db_status.stdout_lines
